@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import packageJson from "../../../package.json";
 import { getDb } from "@/db";
 import { licenseSettings } from "@/db/schema";
-import { LICENSE_PRODUCT_IDS } from "./constants";
+import { LICENSE_PRODUCT_IDS, SELF_HOSTED_ALL_FEATURES } from "./constants";
 import { callPaymugLicenseApi } from "./paymug";
 import type { LicenseEntitlements, LicensePlan, LicenseStatus, PaymugLicenseAction } from "./types";
 import { hashLicenseKey, normalizeLicensePlan, parseFeatures } from "./utils";
@@ -25,6 +25,13 @@ async function getOrCreateLicenseSettings(env: CloudflareEnv) {
 }
 
 function toLicenseStatus(settings: typeof licenseSettings.$inferSelect): LicenseStatus {
+	if (SELF_HOSTED_ALL_FEATURES) {
+		return { ...toUpstreamLicenseStatus(settings), plan: "team", state: "active", seatLimit: null, active: true };
+	}
+	return toUpstreamLicenseStatus(settings);
+}
+
+function toUpstreamLicenseStatus(settings: typeof licenseSettings.$inferSelect): LicenseStatus {
 	const active = settings.state === "active" && (settings.plan === "pro" || settings.plan === "team");
 	return {
 		plan: active ? settings.plan : "community",
@@ -44,6 +51,9 @@ export async function getLicenseStatus(env: CloudflareEnv): Promise<LicenseStatu
 }
 
 export async function getLicenseEntitlements(env: CloudflareEnv): Promise<LicenseEntitlements> {
+	if (SELF_HOSTED_ALL_FEATURES) {
+		return { plan: "team", canCustomizeBranding: true, canManageAccounts: true, canShareMailboxes: true, accountSeatLimit: null, canForwardEmail: true };
+	}
 	try {
 		const status = await getLicenseStatus(env);
 		// Pro adds accounts up to its seat limit; Team is unlimited and also unlocks shared mailboxes.

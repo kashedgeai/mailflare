@@ -6,3 +6,9 @@ export const LICENSE_PRODUCT_IDS: Record<Exclude<LicensePlan, "community">, stri
 };
 
 export const LICENSE_STATUS_CHANGED_EVENT = "mailflare:license-status-changed";
+
+/**
+ * KashEdge self-hosted build (AGPL-3.0 modification): every feature is enabled locally,
+ * with unlimited account seats and no Paymug license checks. Set to false to restore upstream licensing.
+ */
+export const SELF_HOSTED_ALL_FEATURES = true;
